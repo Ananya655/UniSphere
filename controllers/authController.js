@@ -1,14 +1,29 @@
 /**
  * Authentication Controller
- * Handles user registration and (future) login logic.
+ * Handles user registration and login.
  */
 
 const bcrypt = require('bcryptjs');
 const { pool } = require('../config/db');
 const { validateRegisterInput } = require('../utils/validateRegister');
+const { validateLoginInput } = require('../utils/validateLogin');
 const { generateToken } = require('../utils/generateToken');
 
 const SALT_ROUNDS = 10;
+
+const INVALID_CREDENTIALS_MESSAGE = 'Invalid email or password';
+
+/**
+ * Build a safe user object for API responses (excludes password).
+ */
+const toPublicUser = (row) => ({
+  id: row.id,
+  name: row.name,
+  email: row.email,
+  college: row.college,
+  branch: row.branch,
+  current_year: row.current_year,
+});
 
 /**
  * POST /api/auth/register
@@ -90,4 +105,73 @@ const register = async (req, res, next) => {
   }
 };
 
-module.exports = { register };
+/**
+ * POST /api/auth/login
+ * Authenticate a student and return a JWT.
+ */
+const login = async (req, res, next) => {
+  try {
+    // -------------------------------------------------------------------------
+    // Validate request body
+    // -------------------------------------------------------------------------
+    const validation = validateLoginInput(req.body);
+
+    if (!validation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: validation.message,
+        errors: validation.errors,
+      });
+    }
+
+    const { email, password } = validation.data;
+
+    // -------------------------------------------------------------------------
+    // Look up user by email
+    // -------------------------------------------------------------------------
+    const [rows] = await pool.execute(
+      `SELECT id, name, email, password, college, branch, current_year
+       FROM users WHERE email = ? LIMIT 1`,
+      [email]
+    );
+
+    if (rows.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: INVALID_CREDENTIALS_MESSAGE,
+      });
+    }
+
+    const dbUser = rows[0];
+
+    // -------------------------------------------------------------------------
+    // Compare password with stored bcrypt hash
+    // -------------------------------------------------------------------------
+    const isPasswordValid = await bcrypt.compare(password, dbUser.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: INVALID_CREDENTIALS_MESSAGE,
+      });
+    }
+
+    const user = toPublicUser(dbUser);
+
+    // -------------------------------------------------------------------------
+    // Generate JWT and respond
+    // -------------------------------------------------------------------------
+    const token = generateToken(user);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      token,
+      user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { register, login };
