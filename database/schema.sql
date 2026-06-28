@@ -72,6 +72,7 @@ CREATE TABLE resources (
   subject_id      BIGINT UNSIGNED NOT NULL,
   branch          VARCHAR(100)    NOT NULL,
   semester        TINYINT UNSIGNED NOT NULL,
+  year            TINYINT UNSIGNED NOT NULL,
   type            ENUM('notes', 'pyq', 'reference', 'lab', 'assignment') NOT NULL,
   file_url        VARCHAR(500)    NOT NULL COMMENT 'Cloudinary or storage URL',
   uploaded_by     BIGINT UNSIGNED NULL,
@@ -83,6 +84,7 @@ CREATE TABLE resources (
   INDEX idx_resources_subject_id (subject_id),
   INDEX idx_resources_branch (branch),
   INDEX idx_resources_semester (semester),
+  INDEX idx_resources_year (year),
   INDEX idx_resources_type (type),
   INDEX idx_resources_uploaded_by (uploaded_by),
   INDEX idx_resources_branch_semester (branch, semester),
@@ -97,6 +99,7 @@ CREATE TABLE resources (
     ON DELETE SET NULL ON UPDATE CASCADE,
 
   CONSTRAINT chk_resources_semester CHECK (semester BETWEEN 1 AND 8),
+  CONSTRAINT chk_resources_year CHECK (year BETWEEN 1 AND 4),
   CONSTRAINT chk_resources_downloads_count CHECK (downloads_count >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -250,10 +253,10 @@ INSERT INTO subjects (name, branch, semester) VALUES
 ('Operating Systems', 'Computer Science', 4),
 ('Digital Signal Processing', 'Electronics', 6);
 
-INSERT INTO resources (title, description, college, subject_id, branch, semester, type, file_url, uploaded_by, downloads_count) VALUES
-('DBMS Unit 1-3 Notes', 'Comprehensive handwritten and typed notes covering normalization, ER diagrams, and SQL basics.', 'VIT Vellore',1, 'Computer Science', 5, 'notes', 'https://res.cloudinary.com/unisphere/raw/upload/v1/resources/dbms-notes.pdf', 1, 42),
-('DBMS End-Sem PYQ 2023', 'Previous year question paper with marking scheme for DBMS end-semester exam.','IIT Bombay', 1, 'Computer Science', 5, 'pyq', 'https://res.cloudinary.com/unisphere/raw/upload/v1/resources/dbms-pyq-2023.pdf', 2, 87),
-('Silberschatz OS Reference Summary', 'Chapter-wise summary of key concepts from the standard OS textbook.', 'VIT Vellore',2, 'Computer Science', 4, 'reference', 'https://res.cloudinary.com/unisphere/raw/upload/v1/resources/os-reference.pdf', 1, 31);
+INSERT INTO resources (title, description, college, subject_id, branch, semester, year, type, file_url, uploaded_by, downloads_count) VALUES
+('DBMS Unit 1-3 Notes', 'Comprehensive handwritten and typed notes covering normalization, ER diagrams, and SQL basics.', 'VIT Vellore',1, 'Computer Science', 5, 3, 'notes', 'https://res.cloudinary.com/unisphere/raw/upload/v1/resources/dbms-notes.pdf', 1, 42),
+('DBMS End-Sem PYQ 2023', 'Previous year question paper with marking scheme for DBMS end-semester exam.','IIT Bombay', 1, 'Computer Science', 5, 2, 'pyq', 'https://res.cloudinary.com/unisphere/raw/upload/v1/resources/dbms-pyq-2023.pdf', 2, 87),
+('Silberschatz OS Reference Summary', 'Chapter-wise summary of key concepts from the standard OS textbook.', 'VIT Vellore',2, 'Computer Science', 4, 3, 'reference', 'https://res.cloudinary.com/unisphere/raw/upload/v1/resources/os-reference.pdf', 1, 31);
 
 INSERT INTO queries (title, body, subject_id, branch, posted_by, is_resolved) VALUES
 ('Difference between 2NF and 3NF?', 'I understand functional dependencies but I keep confusing second and third normal form. Can someone explain with a simple example?', 1, 'Computer Science', 2, 1);
