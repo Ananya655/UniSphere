@@ -6,6 +6,10 @@
 const { pool } = require('../config/db');
 const { validateResourceUploadInput } = require('../utils/validateResourceUpload');
 const { deleteCloudinaryFile } = require('../utils/deleteCloudinaryFile');
+const {
+  parseResourceFilters,
+  buildResourceWhereClause,
+} = require('../utils/buildResourceQuery');
 
 /**
  * Build a resource object for API responses.
@@ -21,6 +25,29 @@ const toResourceResponse = (row) => ({
   type: row.type,
   file_url: row.file_url,
   uploaded_by: row.uploaded_by,
+  downloads_count: row.downloads_count,
+  created_at: row.created_at,
+  updated_at: row.updated_at,
+});
+
+/**
+ * Build a resource list item with joined uploader and subject details.
+ */
+const toResourceListItem = (row) => ({
+  id: row.id,
+  title: row.title,
+  description: row.description,
+  subject_id: row.subject_id,
+  subject_name: row.subject_name,
+  branch: row.branch,
+  semester: row.semester,
+  year: row.year,
+  type: row.type,
+  file_url: row.file_url,
+  uploaded_by: row.uploaded_by,
+  uploader_name: row.uploader_name,
+  uploader_college: row.uploader_college,
+  uploader_branch: row.uploader_branch,
   downloads_count: row.downloads_count,
   created_at: row.created_at,
   updated_at: row.updated_at,
@@ -133,4 +160,69 @@ const uploadResource = async (req, res, next) => {
   }
 };
 
-module.exports = { uploadResource };
+/**
+ * GET /api/resources
+ * List resources with optional filters. Joins users and subjects.
+ * Public route — no authentication required.
+ */
+const getResources = async (req, res, next) => {
+  try {
+    // -------------------------------------------------------------------------
+    // Parse and validate query parameters
+    // -------------------------------------------------------------------------
+    const parsed = parseResourceFilters(req.query);
+
+    if (!parsed.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: parsed.message,
+      });
+    }
+
+    const { whereClause, params } = buildResourceWhereClause(parsed.filters);
+
+    // -------------------------------------------------------------------------
+    // Fetch resources with joins — newest first
+    // -------------------------------------------------------------------------
+    const sql = `
+      SELECT
+        resources.id,
+        resources.title,
+        resources.description,
+        resources.subject_id,
+        resources.branch,
+        resources.semester,
+        resources.year,
+        resources.type,
+        resources.file_url,
+        resources.uploaded_by,
+        resources.downloads_count,
+        resources.created_at,
+        resources.updated_at,
+        users.name AS uploader_name,
+        users.college AS uploader_college,
+        users.branch AS uploader_branch,
+        subjects.name AS subject_name
+      FROM resources
+      INNER JOIN users ON resources.uploaded_by = users.id
+      INNER JOIN subjects ON resources.subject_id = subjects.id
+      ${whereClause}
+      ORDER BY resources.created_at DESC
+    `;
+
+    const [rows] = await pool.execute(sql, params);
+
+    const resources = rows.map(toResourceListItem);
+
+    return res.status(200).json({
+      success: true,
+      count: resources.length,
+      resources,
+    });
+  } catch (error) {
+    console.error('Failed to fetch resources:', error.message);
+    next(error);
+  }
+};
+
+module.exports = { uploadResource, getResources };
