@@ -26,6 +26,21 @@ const toPublicUser = (row) => ({
 });
 
 /**
+ * Build a profile user object with extended fields (excludes password).
+ */
+const toProfileUser = (row) => ({
+  id: row.id,
+  name: row.name,
+  email: row.email,
+  college: row.college,
+  branch: row.branch,
+  current_year: row.current_year,
+  bio: row.bio,
+  profile_picture: row.profile_picture,
+  created_at: row.created_at,
+});
+
+/**
  * POST /api/auth/register
  * Register a new student account and return a JWT.
  */
@@ -174,4 +189,33 @@ const login = async (req, res, next) => {
   }
 };
 
-module.exports = { register, login };
+/**
+ * GET /api/auth/profile
+ * Return the authenticated user's profile from the database.
+ * Requires authMiddleware (req.user.id).
+ */
+const getProfile = async (req, res, next) => {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT id, name, email, college, branch, current_year, bio, profile_picture, created_at
+       FROM users WHERE id = ? LIMIT 1`,
+      [req.user.id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found.',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      user: toProfileUser(rows[0]),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { register, login, getProfile };

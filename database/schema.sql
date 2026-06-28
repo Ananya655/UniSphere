@@ -168,6 +168,7 @@ CREATE TABLE discussion_posts (
   body       TEXT            NOT NULL,
   category   ENUM('General','Placements','Internships','Exams','Projects','Career', 'Other')    NOT NULL,
   posted_by  BIGINT UNSIGNED NOT NULL,
+  upvotes    INT UNSIGNED NOT NULL DEFAULT 0,
   created_at TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
