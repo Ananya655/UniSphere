@@ -107,59 +107,70 @@ CREATE TABLE resources (
 -- QUERIES (Academic Q&A)
 -- Student-posted academic questions tied to a subject.
 -- =============================================================================
+
+
 CREATE TABLE queries (
-  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  title       VARCHAR(250)    NOT NULL,
-  body        TEXT            NOT NULL,
-  subject_id  BIGINT UNSIGNED NOT NULL,
-  branch      VARCHAR(100)    NOT NULL,
-  posted_by   BIGINT UNSIGNED NOT NULL,
-  is_resolved TINYINT(1)      NOT NULL DEFAULT 0,
-  created_at  TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at  TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 
-  PRIMARY KEY (id),
-  INDEX idx_queries_subject_id (subject_id),
-  INDEX idx_queries_branch (branch),
-  INDEX idx_queries_posted_by (posted_by),
-  INDEX idx_queries_is_resolved (is_resolved),
-  INDEX idx_queries_created_at (created_at),
+    resource_id BIGINT UNSIGNED NULL,
 
-  CONSTRAINT fk_queries_subject
-    FOREIGN KEY (subject_id) REFERENCES subjects (id)
-    ON DELETE RESTRICT ON UPDATE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    body TEXT NOT NULL,
 
-  CONSTRAINT fk_queries_posted_by
-    FOREIGN KEY (posted_by) REFERENCES users (id)
-    ON DELETE CASCADE ON UPDATE CASCADE,
+    posted_by BIGINT UNSIGNED NOT NULL,
 
-  CONSTRAINT chk_queries_is_resolved CHECK (is_resolved IN (0, 1))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    is_resolved BOOLEAN DEFAULT FALSE,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_queries_resource
+        FOREIGN KEY (resource_id)
+        REFERENCES resources(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_queries_user
+        FOREIGN KEY (posted_by)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    INDEX idx_resource(resource_id),
+    INDEX idx_posted_by(posted_by),
+    INDEX idx_created(created_at),
+    INDEX idx_resolved(is_resolved)
+);
 
 -- =============================================================================
 -- ANSWERS
 -- Responses to academic queries.
 -- =============================================================================
 CREATE TABLE answers (
-  id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  query_id   BIGINT UNSIGNED NOT NULL,
-  body       TEXT            NOT NULL,
-  posted_by  BIGINT UNSIGNED NOT NULL,
-  created_at TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 
-  PRIMARY KEY (id),
-  INDEX idx_answers_query_id (query_id),
-  INDEX idx_answers_posted_by (posted_by),
-  INDEX idx_answers_created_at (created_at),
+    query_id BIGINT UNSIGNED NOT NULL,
 
-  CONSTRAINT fk_answers_query
-    FOREIGN KEY (query_id) REFERENCES queries (id)
-    ON DELETE CASCADE ON UPDATE CASCADE,
+    body TEXT NOT NULL,
 
-  CONSTRAINT fk_answers_posted_by
-    FOREIGN KEY (posted_by) REFERENCES users (id)
-    ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    posted_by BIGINT UNSIGNED NOT NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_answers_query
+        FOREIGN KEY (query_id)
+        REFERENCES queries(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_answers_user
+        FOREIGN KEY (posted_by)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    INDEX idx_query(query_id),
+    INDEX idx_posted_by(posted_by)
+);
 
 -- =============================================================================
 -- DISCUSSION POSTS
@@ -169,7 +180,7 @@ CREATE TABLE discussion_posts (
   id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   title      VARCHAR(250)    NOT NULL,
   body       TEXT            NOT NULL,
-  category   ENUM('General','Placements','Internships','Exams','Projects','Career', 'Other')    NOT NULL,
+  category   ENUM('exam-prep', 'subject', 'internship', 'placement', 'other') NOT NULL,
   posted_by  BIGINT UNSIGNED NOT NULL,
   upvotes    INT UNSIGNED NOT NULL DEFAULT 0,
   created_at TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -234,42 +245,3 @@ CREATE TABLE post_upvotes (
     ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
-
-
--- =============================================================================
--- SAMPLE DATA (for local testing)
--- Password values below are placeholder bcrypt hashes (not real credentials).
--- Replace with properly hashed passwords in production.
--- =============================================================================
-
-INSERT INTO users (name, email, password, college, branch, current_year, bio) VALUES
-('Ananya Reddy', 'ananya.reddy@vit.ac.in', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'VIT Vellore', 'Computer Science', '3', 'Final-year CS student interested in systems and backend development.'),
-('Rahul Sharma', 'rahul.sharma@iitb.ac.in', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'IIT Bombay', 'Computer Science', '2', 'Sophomore exploring algorithms and competitive programming.'),
-('Priya Nair', 'priya.nair@bits-pilani.ac.in', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'BITS Pilani', 'Electronics', '4', 'Placement season — happy to share internship and interview prep notes.');
-
-INSERT INTO subjects (name, branch, semester) VALUES
-('Database Management Systems', 'Computer Science', 5),
-('Operating Systems', 'Computer Science', 4),
-('Digital Signal Processing', 'Electronics', 6);
-
-INSERT INTO resources (title, description, college, subject_id, branch, semester, year, type, file_url, uploaded_by, downloads_count) VALUES
-('DBMS Unit 1-3 Notes', 'Comprehensive handwritten and typed notes covering normalization, ER diagrams, and SQL basics.', 'VIT Vellore',1, 'Computer Science', 5, 3, 'notes', 'https://res.cloudinary.com/unisphere/raw/upload/v1/resources/dbms-notes.pdf', 1, 42),
-('DBMS End-Sem PYQ 2023', 'Previous year question paper with marking scheme for DBMS end-semester exam.','IIT Bombay', 1, 'Computer Science', 5, 2, 'pyq', 'https://res.cloudinary.com/unisphere/raw/upload/v1/resources/dbms-pyq-2023.pdf', 2, 87),
-('Silberschatz OS Reference Summary', 'Chapter-wise summary of key concepts from the standard OS textbook.', 'VIT Vellore',2, 'Computer Science', 4, 3, 'reference', 'https://res.cloudinary.com/unisphere/raw/upload/v1/resources/os-reference.pdf', 1, 31);
-
-INSERT INTO queries (title, body, subject_id, branch, posted_by, is_resolved) VALUES
-('Difference between 2NF and 3NF?', 'I understand functional dependencies but I keep confusing second and third normal form. Can someone explain with a simple example?', 1, 'Computer Science', 2, 1);
-
-INSERT INTO answers (query_id, body, posted_by) VALUES
-(1, '2NF removes partial dependencies on a composite key. 3NF goes further and removes transitive dependencies where a non-key column depends on another non-key column. Example: in a table with (student_id, course_id, instructor_name), if instructor_name depends only on course_id, that violates 3NF.', 1);
-
-INSERT INTO discussion_posts (title, body, category, posted_by) VALUES
-('How to prepare for DBMS end-sem in 2 weeks?', 'Exams are close and I have not finished normalization and transactions. What topics should I prioritize?', 'Exams', 2);
-
-INSERT INTO discussion_comments (post_id, body, posted_by) VALUES
-(1, 'Focus on ER to relational mapping, normalization up to BCNF, and SQL joins/subqueries first. PYQs helped me the most last semester.', 3);
-
-INSERT INTO post_upvotes (post_id, user_id) VALUES
-(1, 1),
-(1, 3);

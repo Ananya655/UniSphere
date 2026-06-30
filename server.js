@@ -13,6 +13,9 @@ const cors = require('cors');
 const { testConnection } = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const resourceRoutes = require('./routes/resourceRoutes');
+const queryRoutes = require('./routes/queryRoutes');
+const questionRoutes = require('./routes/questionRoutes');
+const discussionRoutes = require('./routes/discussionRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -63,6 +66,22 @@ app.get('/api/health', (req, res) => {
 // ---------------------------------------------------------------------------
 app.use('/api/auth', authRoutes);
 app.use('/api/resources', resourceRoutes);
+
+// POST /api/resources/:resourceId/questions - Create a query for a resource
+// GET  /api/resources/:resourceId/questions - List queries for a resource
+app.use('/api/resources', queryRoutes);
+ 
+// GET   /api/questions/:id           - Fetch single query with answers
+// POST  /api/questions/:id/answers   - Post an answer
+// PATCH /api/questions/:id/resolve   - Resolve a query
+app.use('/api/questions', questionRoutes);
+
+// POST /api/discussions              - Create a discussion post
+// GET  /api/discussions              - List discussions (optional category filter)
+// GET  /api/discussions/:id          - Fetch single discussion with comments
+// POST /api/discussions/:id/comments - Comment on a discussion
+// POST /api/discussions/:id/upvote   - Upvote a discussion
+app.use('/api/discussions', discussionRoutes);
 
 // ---------------------------------------------------------------------------
 // Global Error Handling Middleware

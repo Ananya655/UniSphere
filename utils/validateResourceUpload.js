@@ -3,7 +3,7 @@
  * Validates multipart form fields for resource uploads.
  */
 
-const VALID_TYPES = ['notes', 'pyq', 'reference'];
+const VALID_TYPES = ['notes', 'pyq', 'reference', 'lab', 'assignment'];
 
 /**
  * Parse a positive integer from a string value.
